@@ -58,7 +58,7 @@ async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.Document.FILE_EXTENSION("pdf"), handle_pdf))
+    app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
 
     print("Bot is running on Render Free Tier...")
     await app.run_polling()
