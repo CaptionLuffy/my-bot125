@@ -3,17 +3,25 @@ import re
 import pandas as pd
 import pytesseract
 from pdf2image import convert_from_path
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, CommandHandler, ContextTypes
-
-from keep_alive import keep_alive  # keep-alive server
+from flask import Flask, request
+from telegram import Update, Bot
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")   # e.g. https://your-render-app.onrender.com/webhook
+
+bot = Bot(token=TOKEN)
+
+app = Flask(__name__)
 
 PATTERN = re.compile(r"(\d{1,4})\s+([A-Z0-9]{10,})")
 
+
+# ---------------------- TELEGRAM HANDLERS ----------------------
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Send me the Bengali voter list PDF.\nI will extract Serial No + Voter ID.\n\nPowered on Render Free-Tier 🔥")
+    await update.message.reply_text("Webhook bot active!\nSend me the Bengali voter PDF.")
+
 
 async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -31,7 +39,6 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for page_no, img in enumerate(images):
         text = pytesseract.image_to_string(img, lang="ben")
-
         for line in text.splitlines():
             m = PATTERN.search(line)
             if m:
@@ -52,18 +59,34 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_document(document=open(out_path, "rb"))
 
 
-async def main():
-    keep_alive()  # start keep-alive web server
+# ---------------------- FLASK WEBHOOK SERVER ----------------------
 
-    app = ApplicationBuilder().token(TOKEN).build()
+@app.route("/", methods=["GET"])
+def index():
+    return "Webhook OCR Bot Active!"
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(), bot)
+    application.process_update(update)
+    return "OK", 200
 
-    print("Bot is running on Render Free Tier...")
-    await app.run_polling(close_loop=False)
 
+# ---------------------- START WEBHOOK ----------------------
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main(), debug=False)
+
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
+
+    # Delete old webhook
+    bot.delete_webhook()
+
+    # Set new webhook
+    bot.set_webhook(url=WEBHOOK_URL)
+
+    print("Webhook set:", WEBHOOK_URL)
+
+    # Start Flask (Render Web Service)
+    app.run(host="0.0.0.0", port=10000)
