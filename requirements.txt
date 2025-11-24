@@ -4,3 +4,4 @@ pillow
 pandas
 pdf2image
 flask
+gunicorn
