@@ -1,0 +1,6 @@
+python-telegram-bot==20.3
+pytesseract
+pillow
+pandas
+pdf2image
+flask
