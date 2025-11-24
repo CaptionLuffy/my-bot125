@@ -6,27 +6,23 @@ from pdf2image import convert_from_path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, CommandHandler, ContextTypes
 
-from keep_alive import keep_alive
+from keep_alive import keep_alive  # keep-alive server
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 PATTERN = re.compile(r"(\d{1,4})\s+([A-Z0-9]{10,})")
 
-# Poppler path for Replit
-POPPLER_PATH = "/home/runner/.apt/usr/bin"
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Send me a Bengali voter list PDF.\nI will extract Serial No + Voter ID.")
-
+    await update.message.reply_text("Send me the Bengali voter list PDF.\nI will extract Serial No + Voter ID.\n\nPowered on Render Free-Tier 🔥")
 
 async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     file = await update.message.document.get_file()
     pdf_path = "input.pdf"
     await file.download_to_drive(pdf_path)
 
     try:
-        images = convert_from_path(pdf_path, dpi=300, poppler_path=POPPLER_PATH)
+        images = convert_from_path(pdf_path, dpi=300)
     except Exception as e:
         await update.message.reply_text(f"PDF error: {e}")
         return
@@ -46,24 +42,25 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 })
 
     if not rows:
-        await update.message.reply_text("No data found in PDF.")
+        await update.message.reply_text("No Serial/Voter ID found.")
         return
 
     df = pd.DataFrame(rows)
-    output_path = "voter.xlsx"
-    df.to_excel(output_path, index=False)
+    out_path = "voter.xlsx"
+    df.to_excel(out_path, index=False)
 
-    await update.message.reply_document(document=open(output_path, "rb"))
+    await update.message.reply_document(document=open(out_path, "rb"))
 
 
 async def main():
-    keep_alive()  # prevents replit sleeping
+    keep_alive()  # start keep-alive web server
 
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Document.FILE_EXTENSION("pdf"), handle_pdf))
 
+    print("Bot is running on Render Free Tier...")
     await app.run_polling()
 
 
