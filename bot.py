@@ -61,9 +61,9 @@ async def main():
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
 
     print("Bot is running on Render Free Tier...")
-    await app.run_polling()
+    await app.run_polling(close_loop=False)
 
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    asyncio.run(main(), debug=False)
