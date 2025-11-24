@@ -1,7 +1,7 @@
 python-telegram-bot==20.3
+flask
 pytesseract
 pillow
 pandas
 pdf2image
-flask
 gunicorn
